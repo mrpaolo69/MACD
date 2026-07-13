@@ -390,8 +390,31 @@ def upload_to_drive(service, wb, file_id):
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         resumable=True
     )
-    service.files().update(fileId=file_id, media_body=media).execute()
-    print(f"✅ Uploaded to Google Drive (file ID: {file_id})")
+    try:
+        # Try to update existing file
+        service.files().update(fileId=file_id, media_body=media).execute()
+        print(f"✅ Updated existing file in Google Drive (ID: {file_id})")
+    except Exception:
+        # File not found — create it instead
+        print("  File not found — creating new file in Google Drive...")
+        buffer.seek(0)
+        media = MediaIoBaseUpload(
+            buffer,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            resumable=True
+        )
+        file_metadata = {
+            "name": "QQQ_MACD_RSI_Crossovers.xlsx",
+            "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        }
+        new_file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields="id"
+        ).execute()
+        new_id = new_file.get("id")
+        print(f"✅ Created new file in Google Drive (ID: {new_id})")
+        print(f"⚠️  Update your GDRIVE_FILE_ID secret to: {new_id}")
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
