@@ -385,26 +385,20 @@ def upload_to_drive(service, wb, file_id):
     buffer = io.BytesIO()
     wb.save(buffer)
     buffer.seek(0)
-    media = MediaIoBaseUpload(
-        buffer,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        resumable=True
-    )
-    try:
-        service.files().update(fileId=file_id, media_body=media).execute()
-        print(f"✅ Updated existing file in Google Drive (ID: {file_id})")
-    except Exception:
-        print("  File not found — creating new file in Google Drive...")
-        buffer.seek(0)
+
+    file_metadata = {
+        "name": "QQQ_MACD_RSI_Crossovers.xlsx",
+        "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    }
+
+    # Always create a new file if file_id is placeholder or missing
+    if not file_id or file_id.lower() == "placeholder":
+        print("  No valid file ID — creating new file in Google Drive...")
         media = MediaIoBaseUpload(
             buffer,
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            resumable=True
+            resumable=False
         )
-        file_metadata = {
-            "name": "QQQ_MACD_RSI_Crossovers.xlsx",
-            "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        }
         new_file = service.files().create(
             body=file_metadata,
             media_body=media,
@@ -413,6 +407,35 @@ def upload_to_drive(service, wb, file_id):
         new_id = new_file.get("id")
         print(f"✅ Created new file in Google Drive (ID: {new_id})")
         print(f"⚠️  Update your GDRIVE_FILE_ID secret to: {new_id}")
+    else:
+        try:
+            media = MediaIoBaseUpload(
+                buffer,
+                mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                resumable=False
+            )
+            service.files().update(
+                fileId=file_id,
+                body=file_metadata,
+                media_body=media
+            ).execute()
+            print(f"✅ Updated existing file in Google Drive (ID: {file_id})")
+        except Exception as e:
+            print(f"  Update failed ({e}) — creating new file instead...")
+            buffer.seek(0)
+            media = MediaIoBaseUpload(
+                buffer,
+                mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                resumable=False
+            )
+            new_file = service.files().create(
+                body=file_metadata,
+                media_body=media,
+                fields="id"
+            ).execute()
+            new_id = new_file.get("id")
+            print(f"✅ Created new file in Google Drive (ID: {new_id})")
+            print(f"⚠️  Update your GDRIVE_FILE_ID secret to: {new_id}")
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
