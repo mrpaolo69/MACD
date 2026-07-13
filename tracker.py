@@ -391,11 +391,9 @@ def upload_to_drive(service, wb, file_id):
         resumable=True
     )
     try:
-        # Try to update existing file
         service.files().update(fileId=file_id, media_body=media).execute()
         print(f"✅ Updated existing file in Google Drive (ID: {file_id})")
     except Exception:
-        # File not found — create it instead
         print("  File not found — creating new file in Google Drive...")
         buffer.seek(0)
         media = MediaIoBaseUpload(
